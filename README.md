@@ -1,2 +1,2 @@
-# lemons - A command line project name generator
+# Dilema - A CLI delimeter-based wildcard text replacer
 

@@ -3,6 +3,7 @@ use std::io::{self, BufRead};
 pub struct UltraWild {
     pub input_text: String,
     pub match_pattern: String,
+    pub origional_lines: Vec<String>,
     pub modified_lines: Vec<String>,
 }
 
@@ -21,12 +22,17 @@ impl UltraWild {
         Self {
             input_text,
             match_pattern,
-            modified_lines: final_lines,
+            origional_lines: final_lines.clone(),
+            modified_lines: final_lines.clone(),
         }
     }
 
-    pub fn print_lines(self) {
-        for s in self.modified_lines {
+    pub fn print_origional_lines(self) {
+        println!(
+            "origional lines count: {}",
+            self.origional_lines.len().to_string()
+        );
+        for s in self.origional_lines {
             println!("{}", s);
         }
     }
@@ -40,7 +46,18 @@ mod ultrawild_tests {
     #[test]
     fn ultrawild_create_new() {
         let _namer = UltraWild::new("test".to_string(), "*.*".to_string());
-        //assert_eq!(_namer.generated_names.len(), 1);
-        //assert_eq!(_namer.generated_names[0].contains("test"), true);
+        // assert_eq!(_namer.generated_names.len(), 1);
+        // assert_eq!(_namer.generated_names[0].contains("test"), true);
+    }
+
+    #[test]
+    fn ultrawild_check_origional_lines() {
+        let input = "test \n test2 \n test3 \n test4";
+        let _namer = UltraWild::new(input.to_string(), "*.*".to_string());
+        assert_eq!(_namer.origional_lines.len(), 4);
+
+        for l in _namer.origional_lines.iter() {
+            assert_eq!(l.contains("test"), true);
+        }
     }
 }

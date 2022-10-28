@@ -147,14 +147,6 @@ impl MatchPatternCommand {
 mod ultrawild_tests {
     use super::*;
 
-    /// test new namer
-    #[test]
-    fn ultrawild_create_new() {
-        let _namer = UltraWild::new("test".to_string(), ".%<0%does *".to_string());
-        // assert_eq!(_namer.generated_names.len(), 1);
-        // assert_eq!(_namer.generated_names[0].contains("test"), true);
-    }
-
     #[test]
     fn ultrawild_check_origional_lines() {
         let input = "test \n test2 \n test3 \n test4";

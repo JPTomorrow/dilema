@@ -8,7 +8,16 @@ type PatternMatchResult<T> = std::result::Result<T, PatternMatchError>;
 struct PatternMatchError;
 impl fmt::Display for PatternMatchError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "pattern match error!")
+        write!(f, "Pattern match error!")
+    }
+}
+
+type InstructionParseResult<T> = std::result::Result<T, InstructionParseError>;
+#[derive(Debug, Clone)]
+struct InstructionParseError;
+impl fmt::Display for InstructionParseError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "Error parsing instruction!")
     }
 }
 
@@ -94,23 +103,27 @@ impl PartialEq for PatternInstruction {
 }
 
 impl PatternInstruction {
-    // /// parse a single instruction of a match pattern command
-    // fn parse(&self) {
-    //     match *self {
-    //         PI::Delimeter(c) => {
-    //             println!("delimeter: {}", c);
-    //         }
-    //         PI::ShiftDirectionAndCount(ref s) => {
-    //             println!("shift direction and count: {}", s);
-    //         }
-    //         PI::TextTransform(ref s) => {
-    //             println!("text transform: {}", s);
-    //         }
-    //         PI::CharTrimDirectionAndCount(ref s) => {
-    //             println!("char trim direction and count: {}", s);
-    //         }
-    //     }
-    // }
+    /// resolve a single instruction of a match pattern command and apply it to the input string
+    fn resolve(&self, input: &str) -> PatternMatchResult<String> {
+        match *self {
+            PI::Delimeter(c) => {
+                // println!("delimeter: {}", c);
+                let valid_delims = ['.', ',', ';', '/', '\\'];
+                if valid_delims.contains(&c) {
+                    return Ok(c.to_string());
+                }
+
+                Err(PatternMatchError)
+            }
+            PI::ShiftDirectionAndCount(ref s) => {
+                panic!("shift direction and count: {}", s);
+            }
+            PI::TextTransform(ref s) => {
+                panic!("text transform: {}", s);
+            }
+            _ => Err(PatternMatchError),
+        }
+    }
 }
 
 /// a single command in a match pattern
@@ -119,10 +132,10 @@ struct MatchPatternCommand {
 }
 
 impl MatchPatternCommand {
-    fn new(command: String) -> PatternMatchResult<Self> {
+    fn new(command: String) -> InstructionParseResult<Self> {
         let raw_instructions: Vec<&str> = command.split('%').collect();
         if raw_instructions.len() == 0 {
-            return Err(PatternMatchError);
+            return Err(InstructionParseError);
         }
 
         let mut instructions: Vec<PatternInstruction> = Vec::new();
@@ -140,6 +153,13 @@ impl MatchPatternCommand {
         instructions.push(PI::TextTransform(tt));
 
         Ok(Self { instructions })
+    }
+
+    pub fn apply_instruction(&self, command_idx: usize, input: &str) -> String {
+        match self.instructions[command_idx].resolve(input) {
+            Ok(s) => s,
+            _ => panic!("error applying instruction"),
+        }
     }
 }
 
@@ -187,6 +207,23 @@ mod ultrawild_tests {
                     PI::ShiftDirectionAndCount(arr[1].to_string())
                 );
                 assert_eq!(cmd.instructions[2], PI::TextTransform(arr[2].to_string()));
+            }
+            _ => {
+                assert!(false);
+            }
+        }
+    }
+
+    #[test]
+    fn match_pattern_delimeter_check() {
+        let arr = vec![".", "<0", "does *"];
+        let input = arr.join("%");
+        match MatchPatternCommand::new(input.to_string()) {
+            Ok(cmd) => {
+                assert_eq!(
+                    cmd.apply_instruction(0, &input.to_string()),
+                    ".".to_string()
+                );
             }
             _ => {
                 assert!(false);

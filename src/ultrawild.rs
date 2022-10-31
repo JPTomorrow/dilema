@@ -79,52 +79,63 @@ impl UltraWild {
     }
 }
 
-/// a single instruction in a match pattern command
+enum ShiftDirection {
+    Left,
+    Right,
+}
 #[derive(Debug, Clone)]
-enum PatternInstruction {
-    Delimeter(char),
-    ShiftDirectionAndCount(String),
-    TextTransform(String),
-    // CharTrimDirectionAndCount(String),
+struct PatternInstruction {
+    delimeter: String,
+    shift_count: i32,
+    shift_direction: ShiftDirection,
+    textTransform: TextTransform,
 }
 
-/// alias for long name
-type PI = PatternInstruction;
+// /// a single instruction in a match pattern command
+// #[derive(Debug, Clone)]
+// enum PatternInstruction {
+//     Delimeter(char),
+//     ShiftDirectionAndCount(String),
+//     TextTransform(String),
+//     // CharTrimDirectionAndCount(String),
+// }
 
-impl PartialEq for PatternInstruction {
-    fn eq(&self, other: &Self) -> bool {
-        match (self, other) {
-            (PI::Delimeter(a), PI::Delimeter(b)) => a == b,
-            (PI::ShiftDirectionAndCount(a), PI::ShiftDirectionAndCount(b)) => a == b,
-            (PI::TextTransform(a), PI::TextTransform(b)) => a == b,
-            _ => false,
-        }
-    }
-}
+// /// alias for long name
+// type PI = PatternInstruction;
 
-impl PatternInstruction {
-    /// resolve a single instruction of a match pattern command and apply it to the input string
-    fn resolve(&self, input: &str) -> PatternMatchResult<String> {
-        match *self {
-            PI::Delimeter(c) => {
-                // println!("delimeter: {}", c);
-                let valid_delims = ['.', ',', ';', '/', '\\'];
-                if valid_delims.contains(&c) {
-                    return Ok(c.to_string());
-                }
+// impl PartialEq for PatternInstruction {
+//     fn eq(&self, other: &Self) -> bool {
+//         match (self, other) {
+//             (PI::Delimeter(a), PI::Delimeter(b)) => a == b,
+//             (PI::ShiftDirectionAndCount(a), PI::ShiftDirectionAndCount(b)) => a == b,
+//             (PI::TextTransform(a), PI::TextTransform(b)) => a == b,
+//             _ => false,
+//         }
+//     }
+// }
 
-                Err(PatternMatchError)
-            }
-            PI::ShiftDirectionAndCount(ref s) => {
-                panic!("shift direction and count: {}", s);
-            }
-            PI::TextTransform(ref s) => {
-                panic!("text transform: {}", s);
-            }
-            _ => Err(PatternMatchError),
-        }
-    }
-}
+// impl PatternInstruction {
+//     /// resolve a single instruction of a match pattern command and apply it to the input string
+//     fn resolve(&self, input: &str) -> PatternMatchResult<String> {
+//         match *self {
+//             PI::Delimeter(c) => {
+//                 let valid_delims = ['.', ',', ';', '/', '\\'];
+//                 if valid_delims.contains(&c) {
+//                     return Ok(c.to_string());
+//                 }
+
+//                 Err(PatternMatchError)
+//             }
+//             PI::ShiftDirectionAndCount(ref s) => {
+//                 panic!("shift direction and count: {}", s);
+//             }
+//             PI::TextTransform(ref s) => {
+//                 panic!("text transform: {}", s);
+//             }
+//             _ => Err(PatternMatchError),
+//         }
+//     }
+// }
 
 /// a single command in a match pattern
 struct MatchPatternCommand {
@@ -155,11 +166,28 @@ impl MatchPatternCommand {
         Ok(Self { instructions })
     }
 
-    pub fn apply_instruction(&self, command_idx: usize, input: &str) -> String {
-        match self.instructions[command_idx].resolve(input) {
-            Ok(s) => s,
-            _ => panic!("error applying instruction"),
+    // apply the command to the input text
+    pub fn apply(&self, input: &str) -> String {
+        let mut output = input.to_string();
+
+        // apply the delimeter
+        let valid_delims = ['.', ',', ';', '/', '\\'];
+        match self.instructions[0] {
+            PI::Delimeter(c) => {
+                if valid_delims.contains(&c) {
+                    output.push(c);
+                }
+            }
+            _ => {}
         }
+
+        // apply the shift direction and count
+        let sdc = self.instructions[1];
+
+        // apply the text transform
+        let tt = self.instructions[2];
+
+        output
     }
 }
 

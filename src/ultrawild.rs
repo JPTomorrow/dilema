@@ -134,7 +134,7 @@ enum ShiftDirection {
 /// a single command in a match pattern
 struct MatchPatternCommand {
     delimeter: char,
-    shift_count: u32,
+    shift_count: usize,
     shift_direction: ShiftDirection,
     textTransform: String,
 }
@@ -148,8 +148,15 @@ impl MatchPatternCommand {
 
         // delimeter
         let del: char;
+        let valid_delims = ['.', ',', ';', '/', '\\'];
         match raw_instructions[0].chars().next() {
-            Some(c) => del = c,
+            Some(c) => {
+                if valid_delims.contains(&c) {
+                    del = c
+                } else {
+                    return Err(InstructionParseError);
+                }
+            }
             None => return Err(InstructionParseError),
         }
 
@@ -160,12 +167,12 @@ impl MatchPatternCommand {
             return Err(InstructionParseError);
         }
 
-        let shift_count: u32;
+        let shift_count: usize;
         match sdc.chars().nth(0) {
             Some(c) => {
                 if c.is_numeric() {
                     shift_count = match c.to_digit(10) {
-                        Some(n) => n,
+                        Some(n) => n as usize,
                         None => return Err(InstructionParseError),
                     };
                 } else {
@@ -204,19 +211,21 @@ impl MatchPatternCommand {
     pub fn apply(&self, input: &str) -> String {
         let mut output = input.to_string();
 
-        // apply the delimeter
-        let valid_delims = ['.', ',', ';', '/', '\\'];
-        match self.instructions[0] {
-            PI::Delimeter(c) => {
-                if valid_delims.contains(&c) {
-                    output.push(c);
-                }
-            }
-            _ => {}
-        }
+        // make index map of delimeter positions
+        let delim_map: Vec<bool> = input.chars().map(|c| c == self.delimeter).collect();
 
         // apply the shift direction and count
-        let sdc = self.instructions[1];
+        let scount = self.shift_count;
+        let sdir = &self.shift_direction;
+
+        match sdir {
+            ShiftDirection::Left => {
+                delim_map.rotate_left(scount);
+                delim_map[delim_map.len()..scount] = false;
+                delim_map[0..scount]
+            }
+            ShiftDirection::Right => (),
+        }
 
         // apply the text transform
         let tt = self.instructions[2];

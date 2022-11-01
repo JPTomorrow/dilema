@@ -79,19 +79,13 @@ impl UltraWild {
     }
 }
 
+// The direction of the shift from the delimeter
+#[derive(Debug, Clone)]
 enum ShiftDirection {
     Left,
     Right,
 }
-#[derive(Debug, Clone)]
-struct PatternInstruction {
-    delimeter: String,
-    shift_count: i32,
-    shift_direction: ShiftDirection,
-    textTransform: TextTransform,
-}
 
-// /// a single instruction in a match pattern command
 // #[derive(Debug, Clone)]
 // enum PatternInstruction {
 //     Delimeter(char),
@@ -139,7 +133,10 @@ struct PatternInstruction {
 
 /// a single command in a match pattern
 struct MatchPatternCommand {
-    pub instructions: Vec<PatternInstruction>,
+    delimeter: char,
+    shift_count: u32,
+    shift_direction: ShiftDirection,
+    textTransform: String,
 }
 
 impl MatchPatternCommand {
@@ -149,21 +146,58 @@ impl MatchPatternCommand {
             return Err(InstructionParseError);
         }
 
-        let mut instructions: Vec<PatternInstruction> = Vec::new();
-
         // delimeter
-        let delimeter = raw_instructions[0].chars().next().unwrap();
-        instructions.push(PI::Delimeter(delimeter));
+        let del: char;
+        match raw_instructions[0].chars().next() {
+            Some(c) => del = c,
+            None => return Err(InstructionParseError),
+        }
 
         // shift direction and count
         let sdc = raw_instructions[1].to_string();
-        instructions.push(PI::ShiftDirectionAndCount(sdc));
+
+        if sdc.len() != 2 {
+            return Err(InstructionParseError);
+        }
+
+        let shift_count: u32;
+        match sdc.chars().nth(0) {
+            Some(c) => {
+                if c.is_numeric() {
+                    shift_count = match c.to_digit(10) {
+                        Some(n) => n,
+                        None => return Err(InstructionParseError),
+                    };
+                } else {
+                    shift_count = 0;
+                }
+            }
+            _ => return Err(InstructionParseError),
+        };
+
+        let shift_direction: ShiftDirection;
+        match sdc.chars().nth(1) {
+            Some(c) => {
+                if c == '<' {
+                    shift_direction = ShiftDirection::Left;
+                } else if c == '>' {
+                    shift_direction = ShiftDirection::Right;
+                } else {
+                    return Err(InstructionParseError);
+                }
+            }
+            _ => return Err(InstructionParseError),
+        };
 
         // text transform
         let tt = raw_instructions[2].to_string();
-        instructions.push(PI::TextTransform(tt));
 
-        Ok(Self { instructions })
+        Ok(Self {
+            delimeter: del,
+            shift_count: shift_count,
+            shift_direction: shift_direction,
+            textTransform: tt,
+        })
     }
 
     // apply the command to the input text
